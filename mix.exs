@@ -45,12 +45,10 @@ defmodule Swoosh.Mua.MixProject do
     [
       {:swoosh, "~> 1.11"},
       {:mail, "~> 0.2.3"},
-      {:castore, "~> 0.1.0 or ~> 1.0"},
       {:mua, github: "ruslandoga/mua"},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.29", only: :dev},
-      # swoosh doesn't start without it
-      {:hackney, "~> 1.9", optional: true}
+      {:castore, "~> 0.1.0 or ~> 1.0", only: [:dev, :test]},
+      {:ex_doc, "~> 0.29", only: :dev}
     ]
   end
 end

@@ -3,7 +3,7 @@ defmodule Swoosh.Mua do
   Swoosh adapter for [Mua.](https://github.com/ruslandoga/mua)
   """
 
-  use Swoosh.Adapter, required_deps: [mail: Mail]
+  use Swoosh.Adapter
 
   @impl true
   def deliver(email, config) do
@@ -33,7 +33,9 @@ defmodule Swoosh.Mua do
   end
 
   defp recipients(%Swoosh.Email{to: to, cc: cc, bcc: bcc}) do
-    Enum.map(List.wrap(to) ++ List.wrap(cc) ++ List.wrap(bcc), &__MODULE__.address/1)
+    (List.wrap(to) ++ List.wrap(cc) ++ List.wrap(bcc))
+    |> Enum.map(&__MODULE__.address/1)
+    |> Enum.uniq()
   end
 
   defp render(email) do
@@ -47,21 +49,19 @@ defmodule Swoosh.Mua do
     |> maybe(&Mail.put_text/2, email.text_body)
     |> maybe(&Mail.put_html/2, email.html_body)
     |> maybe(&__MODULE__.put_headers/2, email.headers)
-    |> put_attachments(email.attachments)
+    |> maybe(&__MODULE__.put_attachments/2, email.attachments)
     |> Mail.render()
   end
 
   defp maybe(mail, _fun, empty) when empty in [nil, [], %{}], do: mail
   defp maybe(mail, fun, value), do: fun.(mail, value)
 
-  defp put_attachments(mail, [attachment | attachments]) do
-    mail
-    |> Mail.put_attachment({attachment.filename, Swoosh.Attachment.get_content(attachment)})
-    |> put_attachments(attachments)
+  @doc false
+  def put_attachments(mail, attachments) do
+    Enum.reduce(attachments, mail, fn attachment, mail ->
+      Mail.put_attachment(mail, {attachment.filename, Swoosh.Attachment.get_content(attachment)})
+    end)
   end
-
-  defp put_attachments(mail, []), do: mail
-  defp put_attachments(mail, nil), do: mail
 
   @doc false
   def put_headers(mail, headers) do
