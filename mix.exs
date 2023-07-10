@@ -20,8 +20,9 @@ defmodule Swoosh.Mua.MixProject do
         source_url: @repo_url,
         source_ref: "v#{@version}",
         main: "readme",
-        extras: ["README.md", "CHANGELOG.md"],
-        skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
+        extras: ["README.md"]
+        # extras: ["README.md", "CHANGELOG.md"],
+        # skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
       ]
     ]
   end
@@ -45,10 +46,12 @@ defmodule Swoosh.Mua.MixProject do
     [
       {:swoosh, "~> 1.11"},
       {:mail, "~> 0.2.3"},
-      {:mua, github: "ruslandoga/mua"},
+      {:mua, "~> 0.1.0"},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
       {:castore, "~> 0.1.0 or ~> 1.0", only: [:dev, :test]},
-      {:ex_doc, "~> 0.29", only: :dev}
+      {:ex_doc, "~> 0.29", only: :dev},
+      # swoosh wants hackney
+      {:hackney, "~> 1.9", only: [:dev, :test]}
     ]
   end
 end
