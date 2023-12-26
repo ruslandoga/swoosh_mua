@@ -18,6 +18,7 @@ end
 ## Usage
 
 ```elixir
+# for supported configuration, please see https://hexdocs.pm/mua/Mua.html#t:option/0
 Application.put_env(:example, Mailer, adapter: Swoosh.Mua)
 
 defmodule Mailer do
@@ -26,8 +27,8 @@ end
 
 email =
   Swoosh.Email.new(
-    from: {"Ruslan", "hey@copycat.fun"},
-    to: {"Ruslan", "dogaruslan@gmail.com"},
+    from: {"Mua", "mua@github.com"},
+    to: {"Receiver", "receiver@mailhog.example"},
     subject: "how are you?",
     text_body: "I'm fine",
     html_body: "I'm <i>fine</i>"

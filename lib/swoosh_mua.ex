@@ -1,40 +1,83 @@
 defmodule Swoosh.Mua do
   @moduledoc """
   Swoosh adapter for [Mua.](https://github.com/ruslandoga/mua)
+
+  For supported configuration options, please see [`Mua.option()`](https://hexdocs.pm/mua/Mua.html#t:option/0)
   """
 
-  use Swoosh.Adapter
+  @behaviour Swoosh.Adapter
 
-  @impl true
-  def deliver(email, config) do
-    sender = address(email.from)
-    message = render(email)
+  defmodule MultihostError do
+    @moduledoc """
+    Raised when no relay is used and recipients contain addresses across multiple hosts.
 
-    recipients(email)
-    |> Enum.group_by(&__MODULE__.recipient_host/1)
-    |> Map.to_list()
-    |> case do
-      [{host, recipients}] ->
-        Mua.easy_send(host, sender, recipients, message, config)
+    For example:
 
-      [_ | _] = multihost ->
-        {:error, "expected all recipients to be on the same host, got: #{inspect(multihost)}"}
+        email =
+          Swoosh.Email.new(
+            to: {"Mua", "mua@github.com"},
+            cc: [{"Swoosh", "mua@swoosh.github.com"}]
+          )
+
+        Swoosh.Mua.deliver(email, _no_relay_config = %{})
+
+    Fields:
+
+      - `:hosts` - the hosts for the recipients, `["github.com", "swoosh.github.com"]` in the example above
+
+    """
+
+    defexception [:hosts]
+
+    def message(%__MODULE__{hosts: hosts}) do
+      "expected all recipients to be on the same host, got: " <> Enum.join(hosts, ", ")
     end
   end
 
-  @doc false
-  def address({_, address}) when is_binary(address), do: address
-  def address(address) when is_binary(address), do: address
+  @impl true
+  def deliver(email, config) do
+    recipients = recipients(email)
 
-  @doc false
-  def recipient_host(address) do
+    recipients_by_host =
+      if relay = Keyword.get(config, :relay) do
+        [{relay, recipients}]
+      else
+        recipients
+        |> Enum.group_by(&recipient_host/1)
+        |> Map.to_list()
+      end
+
+    case recipients_by_host do
+      [{host, recipients}] ->
+        sender = address(email.from)
+        message = render(email)
+
+        with {:ok, _receipt} <- Mua.easy_send(host, sender, recipients, message, config) do
+          {:ok, email}
+        end
+
+      [_ | _] = multihost ->
+        {:error, MultihostError.exception(hosts: :proplists.get_keys(multihost))}
+    end
+  end
+
+  @impl true
+  def validate_config(_config), do: :ok
+
+  @impl true
+  def validate_dependency, do: :ok
+
+  defp address({_, address}) when is_binary(address), do: address
+  defp address(address) when is_binary(address), do: address
+
+  defp recipient_host(address) do
     [_username, host] = String.split(address, "@")
     host
   end
 
   defp recipients(%Swoosh.Email{to: to, cc: cc, bcc: bcc}) do
     (List.wrap(to) ++ List.wrap(cc) ++ List.wrap(bcc))
-    |> Enum.map(&__MODULE__.address/1)
+    |> Enum.map(&address/1)
     |> Enum.uniq()
   end
 
@@ -44,27 +87,27 @@ defmodule Swoosh.Mua do
     |> maybe(&Mail.put_to/2, email.to)
     |> maybe(&Mail.put_cc/2, email.cc)
     |> maybe(&Mail.put_bcc/2, email.bcc)
-    |> maybe(&Mail.put_reply_to/2, email.reply_to)
     |> maybe(&Mail.put_subject/2, email.subject)
     |> maybe(&Mail.put_text/2, email.text_body)
     |> maybe(&Mail.put_html/2, email.html_body)
-    |> maybe(&__MODULE__.put_headers/2, email.headers)
-    |> maybe(&__MODULE__.put_attachments/2, email.attachments)
+    |> maybe(&put_headers/2, email.headers)
+    |> maybe(&put_attachments/2, email.attachments)
     |> Mail.render()
   end
 
   defp maybe(mail, _fun, empty) when empty in [nil, [], %{}], do: mail
   defp maybe(mail, fun, value), do: fun.(mail, value)
 
-  @doc false
-  def put_attachments(mail, attachments) do
+  defp put_attachments(mail, attachments) do
     Enum.reduce(attachments, mail, fn attachment, mail ->
-      Mail.put_attachment(mail, {attachment.filename, Swoosh.Attachment.get_content(attachment)})
+      %Swoosh.Attachment{filename: filename, content_type: content_type} = attachment
+      data = Swoosh.Attachment.get_content(attachment)
+      headers = [content_type: content_type, content_length: Integer.to_string(byte_size(data))]
+      Mail.put_attachment(mail, {filename, data}, headers: headers)
     end)
   end
 
-  @doc false
-  def put_headers(mail, headers) do
+  defp put_headers(mail, headers) do
     Enum.reduce(headers, mail, fn {key, value}, mail ->
       Mail.Message.put_header(mail, key, value)
     end)
