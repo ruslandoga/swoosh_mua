@@ -7,7 +7,7 @@ defmodule Swoosh.Mua.MixProject do
   def project do
     [
       app: :swoosh_mua,
-      version: "0.1.0",
+      version: "0.1.1",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -20,9 +20,8 @@ defmodule Swoosh.Mua.MixProject do
         source_url: @repo_url,
         source_ref: "v#{@version}",
         main: "readme",
-        extras: ["README.md"]
-        # extras: ["README.md", "CHANGELOG.md"],
-        # skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
+        extras: ["README.md", "CHANGELOG.md"],
+        skip_undefined_reference_warnings_on: ["CHANGELOG.md"]
       ]
     ]
   end
