@@ -4,4 +4,4 @@ defmodule TestMailer do
   use Swoosh.Mailer, otp_app: :swoosh_mua_test
 end
 
-ExUnit.start(exclude: [:integration])
+ExUnit.start()

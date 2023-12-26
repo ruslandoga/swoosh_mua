@@ -1,17 +1,18 @@
 defmodule Swoosh.MuaTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
-  @tag :integration
-  test "it works" do
+  test "multihost error" do
     email =
       Swoosh.Email.new(
-        from: {"Ruslan", "hey@copycat.fun"},
-        to: {"Ruslan", "dogaruslan@gmail.com"},
-        subject: "how are you?",
-        text_body: "I'm fine",
-        html_body: "I'm <i>fine</i>"
+        from: {"Mua", "mua@github.com"},
+        to: {"to", "to@github.com"},
+        cc: [{"cc1", "cc1@gmail.com"}]
       )
 
-    assert {:ok, _receipt} = TestMailer.deliver(email)
+    assert {:error, %Swoosh.Mua.MultihostError{} = error} =
+             TestMailer.deliver(email)
+
+    assert Exception.message(error) ==
+             "expected all recipients to be on the same host, got: github.com, gmail.com"
   end
 end
