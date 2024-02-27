@@ -1,3 +1,7 @@
+Archiving in favor of https://github.com/swoosh/swoosh/pull/870
+
+---
+
 # Swoosh.Mua
 
 [![Hex Package](https://img.shields.io/hexpm/v/swoosh_mua.svg)](https://hex.pm/packages/swoosh_mua)
